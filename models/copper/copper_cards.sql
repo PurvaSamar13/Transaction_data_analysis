@@ -1,30 +1,31 @@
+{% set raw_cards = source('bronze','cards_raw')%}
+
 WITH base AS (
 
-SELECT
-    card_id,
-    customer_id,
+    SELECT
+        card_id,
+        customer_id,
 
-    /* 1. Standardise card type */
-    CASE
-        WHEN UPPER(card_type) LIKE '%DEBIT%' THEN 'DEBIT'
-        WHEN UPPER(card_type) LIKE '%CREDIT%' THEN 'CREDIT'
-        ELSE NULL
-    END AS card_type,
+        /* 1. Standardise card type */
+        CASE
+            when upper(card_type) LIKE '%DEBIT%' THEN 'Debit'
+            when upper(card_type) LIKE '%CREDIT%' THEN 'Credit'
+            ELSE null
+        END AS card_type,
 
-    card_number_raw AS card_number,
-    expiry_date,
-    cvv,
-    issued_date,
+        card_number_raw,
+        expiry_date,
+        cvv,
+        issued_date,
 
-    /* 5. Standardise status */
-    CASE
-        WHEN UPPER(status) IN ('ACTIVE','A') THEN 'ACTIVE'
-        WHEN UPPER(status) IN ('INACTIVE','I','BLOCKED') THEN 'INACTIVE'
-        ELSE NULL
-    END AS status
+        /* 5. Standardise status */
+        CASE
+            when upper(status) IN ('ACTIVE','A') THEN 'Active'
+            when upper(status) IN ('INACTIVE','I','BLOCKED') THEN 'Inactive'
+            ELSE null
+        END AS status
 
-FROM {{ source('bronze','cards_raw') }}
-
+    FROM {{ raw_cards }}
 ),
 
 cvv_clean AS (
@@ -33,7 +34,7 @@ SELECT
     card_id,
     customer_id,
     card_type,
-    card_number,
+    card_number_raw,
     expiry_date,
 
     /* Keep only 3 digits */
@@ -48,25 +49,26 @@ FROM base
 
 final AS (
 
-SELECT
-    card_id,
-    customer_id,
-    card_type,
-    card_number,
-    expiry_date,
-    cvv,
+    SELECT
+        card_id,
+        customer_id,
+        card_type,
+        card_number_raw,
+        expiry_date,
+        cvv,
 
-    /* Handle mixed issue date formats */
-    COALESCE(
-        TRY_TO_DATE(issued_date,'YYYY-MM-DD'),
-        TRY_TO_DATE(issued_date,'YYYY/MM/DD')
-    ) AS issued_date,
+        /* Handle mixed issue date formats */
+        COALESCE(
+            TRY_TO_DATE(issued_date,'YYYY-MM-DD'),
+            TRY_TO_DATE(issued_date,'YYYY/MM/DD'),
+            TO_DATE('2012-12-31','YYYY-MM-DD')
+        ) AS issued_date,
 
-    status,
+        status,
 
-    CURRENT_TIMESTAMP() AS updated_at
+        CURRENT_TIMESTAMP() AS updated_at
 
-FROM cvv_clean
+    FROM cvv_clean
 
 )
 

@@ -1,23 +1,25 @@
+{% set raw_transactions = source('bronze','transactions_raw') %}
+
 SELECT
 
     transaction_id,
     account_id,
 
     CASE
-        WHEN REGEXP_LIKE(UPPER(TRIM(transaction_type)), '^(CR|CREDIT)') THEN 'CREDIT'
-        WHEN REGEXP_LIKE(UPPER(TRIM(transaction_type)), '^(DR|DEBIT|DRT)') THEN 'DEBIT'
-        ELSE NULL
+        WHEN regexp_like(UPPER(TRIM(transaction_type)), '^(CR|CREDIT)') THEN 'CREDIT'
+        WHEN regexp_like(UPPER(TRIM(transaction_type)), '^(DR|DEBIT|DRT)') THEN 'DEBIT'
+        ELSE null
     END AS transaction_type,
 
-    REGEXP_REPLACE(amount_raw,'[^0-9.]','')::NUMBER(12,2) AS amount,
+    regexp_replace(amount,'[^0-9.]','')::NUMBER(12,2) AS amount,
 
     CASE
         WHEN UPPER(currency_code) LIKE '%INR%' THEN 'INR'
         WHEN UPPER(currency_code) LIKE '%USD%' THEN 'USD'
-        ELSE NULL
+        ELSE null
     END AS currency,
 
-    TRIM(REGEXP_REPLACE(merchant_name,'[^A-Za-z0-9 ]','')) AS merchant_name,
+    TRIM(regexp_replace(merchant_name,'[^A-Za-z0-9 ]','')) AS merchant_name,
 
     CASE
         WHEN UPPER(status) IN ('SUCCESS','COMPLETED','S') THEN 'SUCCESS'
@@ -28,4 +30,4 @@ SELECT
 
     CURRENT_TIMESTAMP() AS updated_at
 
-FROM {{ source('bronze','transactions_raw') }}
+FROM {{ raw_transactions }}

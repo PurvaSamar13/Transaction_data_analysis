@@ -1,3 +1,5 @@
+{% set raw_customers = source('bronze','customers_raw')%}
+
 WITH base AS (
 
 SELECT
@@ -12,6 +14,7 @@ SELECT
     REGEXP_REPLACE(phone_number, 'x.*$', '') AS phone_step1,
 
     date_of_birth,
+
     pan_number,
 
     /* Remove leading " from address */
@@ -21,7 +24,7 @@ SELECT
 
     created_at
 
-FROM {{ source('bronze','customers_raw') }}
+FROM {{ raw_customers }}
 
 ),
 
@@ -30,7 +33,7 @@ phone_digits AS (
 SELECT
     customer_id,
     full_name,
-    email,
+    coalesce(email,CONCAT( lower(REPLACE(full_name,' ','')),'@gmail.com' )) as email,
 
     /* Remove everything except digits */
     REGEXP_REPLACE(phone_step1, '[^0-9]', '') AS phone_clean,
@@ -53,9 +56,9 @@ SELECT
     email,
 
     /* Keep last 10 digits and format abc-def-ghij */
-    SUBSTR(phone_clean,-10,3) || '-' ||
-    SUBSTR(phone_clean,-7,3) || '-' ||
-    SUBSTR(phone_clean,-4,4) AS phone_number,
+    substr(phone_clean,-10,3) || '-' ||
+    substr(phone_clean,-7,3) || '-' ||
+    substr(phone_clean,-4,4) AS phone_number,
 
     date_of_birth,
     pan_number,
@@ -63,7 +66,7 @@ SELECT
     country,
 
     /* Updated timestamp format */
-    TO_VARCHAR(CURRENT_TIMESTAMP(),'DD-MM-YY HH24-MI-SS') AS updated_at
+    CURRENT_TIMESTAMP() AS updated_at
 
 FROM phone_digits
 

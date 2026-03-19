@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: bronze
     database: BANKING
-    schema: records
+    schema: a_bronze_table
 
     tables:
       - name: customers_raw
